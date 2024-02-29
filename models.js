@@ -10,10 +10,11 @@ async function main() {
   console.log('Success!');
 
   const PostSchema = new mongoose.Schema({
+    username: String,
     title: String,
     descr: String,
     date: { type: Date, default: Date.now },
-    recipeId: String,
+    recipeIds: [String],
     likes: [String] // array of usernames
   })
 
@@ -21,7 +22,7 @@ async function main() {
     username: String,
     comment: String,
     date: { type: Date, default: Date.now },
-    post: { type: mongoose.Schema.Types.ObjectId, ref: 'Post' }
+    postId: { type: mongoose.Schema.Types.ObjectId, ref: 'Post' }
   })
 
   const UserSchema = new mongoose.Schema({
@@ -37,7 +38,7 @@ async function main() {
   const LoggerSchema = new mongoose.Schema({
     username: String,
     date: { type: Date, default: Date.now },
-    foodId: [String] // array of foodIds
+    foodIds: [String] // array of foodIds
   })
 
   models.Post = mongoose.model('Post', PostSchema);
