@@ -6,13 +6,13 @@ main().catch(err => console.log(err));
 
 async function main() {
   console.log('Connecting to database...');
-  await mongoose.connect(`mongodb+srv://xyou:rbyt9jTc8dOP6ZH1@atlascluster.r2vxoaz.mongodb.net/foodhub`);
+  await mongoose.connect(`mongodb+srv://xyou:${process.env.MONGO_PW}@atlascluster.r2vxoaz.mongodb.net/foodhub`);
   console.log('Success!');
 
   const PostSchema = new mongoose.Schema({
     title: String,
     descr: String,
-    date: new Date(),
+    date: { type: Date, default: Date.now },
     recipeId: String,
     likes: [String] // array of usernames
   })
@@ -20,7 +20,7 @@ async function main() {
   const CommentSchema = new mongoose.Schema({
     username: String,
     comment: String,
-    date: new Date(),
+    date: { type: Date, default: Date.now },
     post: { type: mongoose.Schema.Types.ObjectId, ref: 'Post' }
   })
 
@@ -36,7 +36,7 @@ async function main() {
 
   const LoggerSchema = new mongoose.Schema({
     username: String,
-    date: new Date(),
+    date: { type: Date, default: Date.now },
     foodId: [String] // array of foodIds
   })
 

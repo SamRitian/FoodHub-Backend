@@ -1,12 +1,14 @@
 var express = require('express');
 var router = express.Router();
 
+var models = require('../../../models.js')
+
 router.get('/', function (req, res, next) {
   res.json({ message: 'Users API' })
 });
 
 // Login endpoint
-app.post('/login', async (req, res) => {
+router.post('/login', async (req, res) => {
   const { username, password } = req.body;
 
   try {
