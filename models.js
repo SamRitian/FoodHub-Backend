@@ -6,22 +6,23 @@ main().catch(err => console.log(err));
 
 async function main() {
   console.log('Connecting to database...');
-  await mongoose.connect(`mongodb+srv://xyou:rbyt9jTc8dOP6ZH1@atlascluster.r2vxoaz.mongodb.net/foodhub`);
+  await mongoose.connect(`mongodb+srv://xyou:${process.env.MONGO_PW}@atlascluster.r2vxoaz.mongodb.net/foodhub`);
   console.log('Success!');
 
   const PostSchema = new mongoose.Schema({
+    username: String,
     title: String,
     descr: String,
-    date: new Date(),
-    recipeId: String,
+    date: { type: Date, default: Date.now },
+    recipeIds: [String],
     likes: [String] // array of usernames
   })
 
   const CommentSchema = new mongoose.Schema({
     username: String,
     comment: String,
-    date: new Date(),
-    post: { type: mongoose.Schema.Types.ObjectId, ref: 'Post' }
+    date: { type: Date, default: Date.now },
+    postId: { type: mongoose.Schema.Types.ObjectId, ref: 'Post' }
   })
 
   const UserSchema = new mongoose.Schema({
@@ -36,8 +37,8 @@ async function main() {
 
   const LoggerSchema = new mongoose.Schema({
     username: String,
-    date: new Date(),
-    foodId: [String] // array of foodIds
+    date: { type: Date, default: Date.now },
+    foodIds: [String] // array of foodIds
   })
 
   models.Post = mongoose.model('Post', PostSchema);
