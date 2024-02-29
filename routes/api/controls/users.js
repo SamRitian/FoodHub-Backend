@@ -6,7 +6,7 @@ router.get('/', function (req, res, next) {
 });
 
 // Login endpoint
-app.post('/login', async (req, res) => {
+router.post('/login', async (req, res) => {
   const { username, password } = req.body;
 
   try {
