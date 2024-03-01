@@ -101,8 +101,50 @@ router.post('/comment', async (req, res) => {
   }
 });
 
-// like a post (query param: postId, username)
+/*
+  like a post
+  expects: {
+    username: String,
+    postId: ObjectId
+  }
+*/
+router.post('/like', async (req, res) => {
+  try {
+    let { username, postId } = req.body;
+    let post = await models.Post.findById(postId);
 
-// unlike a post (query param: postId, username)
+    // add username to the likes array if it is not there yet
+    if (!post.likes.includes(username)) {
+      post.likes.push(username);
+      await post.save();
+    }
+    res.send({ status: 'success', message: 'Liked the post' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+/*
+  unlike a post
+  expects: {
+    username: String,
+    postId: ObjectId
+  }
+*/
+router.post('/unlike', async (req, res) => {
+  try {
+    let { username, postId } = req.body;
+    let post = await models.Post.findById(postId);
+
+    // delete username from the likes array if it is there
+    if (post.likes.includes(username)) {
+      post.likes = post.likes.filter(username => username !== username);
+      await post.save();
+    }
+    res.send({ status: 'success', message: 'Unliked the post' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
 
 module.exports = router;
