@@ -16,36 +16,31 @@ getAccessToken()
 router.get('/', async (req, res, next) => {
   let username = req.body.username
 
-  if(user){
+  if(username){
     try {
-      let user = await models.User.findOne({ username });
-      if (!user) {
-        res.status(401).json({ message: "Invalid username" });
-      } else {
-        let data = await models.Logger.findOne({ username });
+      let data = await models.Logger.findOne({ username });
 
-        if(data){
-          let food = data.foodIds
+      if(data){
+        let food = data.foodIds
 
-          for(let i = 0; i < food.length(); i++) {
-            let options = {
-              method : 'POST',
-              url: BASEURL + `?method=food.get.v3&food_id=${food[i]}&format=json`,
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-              }
+        for(let i = 0; i < food.length; i++) {
+          let options = {
+            method : 'POST',
+            url: BASEURL + `?method=food.get.v3&food_id=${food[i]}&format=json`,
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
             }
-
-            request(options, function (error, response, body) {
-              if (error) throw new Error(error);
-              console.log(body)
-              res.json({ foodInfo: body })
-            });
           }
-        } else {
-          res.status(401).json({ message: "No food item yet" });
+
+          request(options, function (error, response, body) {
+            if (error) throw new Error(error);
+            console.log(body)
+            res.json({ foodInfo: body })
+          });
         }
+      } else {
+        res.status(401).json({ message: "No food item yet" });
       }
     }catch(err){
       console.error(err);
@@ -61,31 +56,26 @@ router.post('/', async (req, res, next) => {
 
   if(username && foodId) {
     try {
-      let user = await models.User.findOne({ username });
-      if (!user) {
-        res.status(401).json({ message: "Invalid username" });
+      let data = await models.Logger.findOne({ username });
+
+      if(data) {
+        let foodList = data.foodIds
+        let newFoodItem = new models.Logger({
+          username: username,
+          foodIds: [...foodList, foodId]
+        });
+
+        await newFoodItem.save();
       } else {
-        let data = await models.Logger.findOne({ username });
+        let newItem = new models.Logger({
+          username: username,
+          foodIds: [foodId]
+        });
 
-        if(data) {
-          let foodList = data.foodIds
-          let newFoodItem = new models.Logger({
-            username: username,
-            foodIds: [...foodList, foodId]
-          });
-
-          await newFoodItem.save();
-        } else {
-          let newItem = new models.Logger({
-            username: username,
-            foodIds: [foodId]
-          });
-
-          await newItem.save();
-        }
-
-        res.json({status: 'success'});
+        await newItem.save();
       }
+
+      res.json({status: 'success'});
     }catch(err){
       console.error(err);
     }
