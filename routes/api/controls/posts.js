@@ -12,6 +12,7 @@ router.get('/', async (req, res) => {
       posts.map(async post => {
         return {
           id: post._id,
+          username: post.username,
           title: post.title,
           descr: post.descr,
           date: post.date,
