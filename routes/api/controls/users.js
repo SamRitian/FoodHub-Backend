@@ -7,6 +7,30 @@ router.get('/', function (req, res, next) {
   res.json({ message: 'Users API' })
 });
 
+const mongoose = require('mongoose');
+
+    const uri = 'mongodb+srv://xyou:rbyt9jTc8dOP6ZH1@atlascluster.r2vxoaz.mongodb.net/'; // Replace with your MongoDB connection string
+
+    mongoose.connect(uri, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true
+    })
+    .then(() => console.log('Connected to MongoDB database'))
+    .catch(error => console.error('Error connecting to MongoDB:', error));
+
+
+const UserSchema = new mongoose.Schema({
+  username: { type: String, required: true, unique: true },
+  password: { type: String, required: true },
+  dob: { type: Date },
+  height: { type: Number },
+  weight: { type: Number },
+  healthGoal: { type: String },
+  activityLevel: { type: String }
+});
+
+const User = mongoose.model('User', UserSchema);
+
 // Login endpoint
 router.post('/login', async (req, res) => {
   const { username, password } = req.body;
