@@ -14,6 +14,7 @@ router.get('/', async (req, res) => {
           id: post._id,
           username: post.username,
           title: post.title,
+          calories: post.calories,
           descr: post.descr,
           date: post.date,
           recipeIds: post.recipeIds,
@@ -41,10 +42,11 @@ router.get('/', async (req, res) => {
 */
 router.post('/', async (req, res) => {
   try {
-    let { username, title, descr, recipeIds } = req.body;
+    let { username, title, calories, descr, recipeIds } = req.body;
     let newPost = new models.Post({
       username,
       title,
+      calories,
       descr,
       recipeIds
     })

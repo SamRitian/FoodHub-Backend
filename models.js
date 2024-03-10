@@ -12,6 +12,7 @@ async function main() {
   const PostSchema = new mongoose.Schema({
     username: String,
     title: String,
+    calories: Number,
     descr: String,
     date: { type: Date, default: Date.now },
     recipeIds: [String],
@@ -40,7 +41,7 @@ async function main() {
     date: { type: Date, default: Date.now },
     foodIds: [String], // array of foodIds
     totalCal: Number,
-    calPerMeal: {type: Object, default: {"breakfast": 0, "lunch": 0, "snack": 0, "dinner": 0}}
+    calPerMeal: { type: Object, default: { "breakfast": 0, "lunch": 0, "snack": 0, "dinner": 0 } }
   })
 
   models.Post = mongoose.model('Post', PostSchema);
