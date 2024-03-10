@@ -36,7 +36,13 @@ router.get('/', async (req, res, next) => {
           request(options, function (error, response, body) {
             if (error) throw new Error(error);
             console.log(body)
-            res.json({ foodInfo: body })
+            res.json({
+              "foodId": body.food["food_id"],
+              "name": body.food["food_name"],
+              "type": body.food["food_type"],
+              "attributes": body.food["food_attributes"],
+              "servings": body.food["servings"]
+            })
           });
         }
       } else {
@@ -52,9 +58,9 @@ router.get('/', async (req, res, next) => {
 
 // add food to the db
 router.post('/', async (req, res, next) => {
-  let {username, foodId} = req.body
+  let {username, foodId, meal, calories} = req.body
 
-  if(username && foodId) {
+  if(username && foodId && meal && calories) {
     try {
       let data = await models.Logger.findOne({ username });
 
@@ -62,14 +68,26 @@ router.post('/', async (req, res, next) => {
         let foodList = data.foodIds
         let newFoodItem = new models.Logger({
           username: username,
-          foodIds: [...foodList, foodId]
+          foodIds: [...foodList, foodId],
+          totalCal: data.totalCal + calories,
+          calPerMeal: {
+            ...data.calPerMeal,
+            [meal]: data.calPerMeal[meal] + calories
+          }
         });
 
         await newFoodItem.save();
       } else {
         let newItem = new models.Logger({
           username: username,
-          foodIds: [foodId]
+          foodIds: [foodId],
+          totalCal: calories,
+          calPerMeal: {
+            breakfast: meal === "breakfast" ? calories : 0,
+            lunch: meal === "lunch" ? calories : 0,
+            snack: meal === "snack" ? calories : 0,
+            dinner: meal === "dinner" ? calories : 0
+          }
         });
 
         await newItem.save();
