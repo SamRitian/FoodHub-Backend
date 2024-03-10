@@ -34,6 +34,7 @@ router.get('/', async (req, res) => {
   {
     username: String,
     title: String,
+    calories: Number,
     descr: String,
     recipeIds: [String]
     date: (auto-generated)
