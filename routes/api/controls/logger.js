@@ -17,47 +17,12 @@ router.get('/', async (req, res, next) => {
   let username = req.query.username
 
   if(username){
-    try {
-      let data = await models.Logger.findOne({ username });
+    let data = await models.Logger.findOne({ username });
 
-      if(data){
-        let food = data.foodIds
-
-        for(let i = 0; i < food.length; i++) {
-          let options = {
-            method : 'POST',
-            url: BASEURL + `?method=food.get.v3&food_id=${food[i]}&format=json`,
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-            }
-          }
-
-          request(options, function (error, response, body) {
-            if (error) throw new Error(error);
-            body = JSON.parse(body);
-            console.log(body);
-
-            console.log(data.totalCal);
-            console.log(data.calPerMeal)
-
-            res.json({
-              "totalCal": data.totalCal,
-              "calPerMeal": data.calPerMeal,
-              "foodInfo": {"foodId": body.food["food_id"],
-                            "name": body.food["food_name"],
-                            "type": body.food["food_type"],
-                            "attributes": body.food["food_attributes"],
-                            "servings": body.food["servings"]
-                          }
-            })
-          });
-        }
-      } else {
-        res.status(401).json({ message: "No food item yet" });
-      }
-    }catch(err){
-      console.error(err);
+    if(data){
+      res.json(data);
+    } else {
+      res.status(401).json({ message: "No food item yet" });
     }
   } else {
     res.status(401).json({ message: "Missing required username" });
@@ -66,42 +31,68 @@ router.get('/', async (req, res, next) => {
 
 // add food to the db
 router.post('/', async (req, res, next) => {
-  let {username, foodId, meal, calories} = req.body
+  let {username, foodId, meal, calories, servingSize, nutrition} = req.body
 
-  if(username && foodId && meal && calories) {
+  if(username && foodId && meal && calories && servingSize && nutrition) {
     try {
       let data = await models.Logger.findOne({ username });
+      let result = {}
+
+      let newFood = {}
+        newFood[foodId] = {
+          "serving": [servingSize, calories],
+          "protein": nutrition[0],
+          "carbs": nutrition[1],
+          "fat": nutrition[2]
+        };
 
       if(data) {
-        let foodList = data.foodIds
-        let newFoodItem = new models.Logger({
-          username: username,
-          foodIds: [...foodList, foodId],
+        let foods = data.foodItems;
+        foods.push(newFood);
+
+        let chosenMeal = data.calPerMeal[meal].foods;
+        console.log(data.calPerMeal)
+        chosenMeal.push(...foodId);
+
+        let update = {
+          foodItems: foods,
           totalCal: data.totalCal + calories,
           calPerMeal: {
             ...data.calPerMeal,
-            [meal]: data.calPerMeal[meal] + calories
+            [meal]: {
+              total: data.calPerMeal[meal] + calories,
+              foods: chosenMeal
+            }
           }
-        });
+        };
 
-        await newFoodItem.save();
+        let updateItem = await models.Logger.findOneAndUpdate({username: username}, update, { new: true })
+
+        result = updateItem
+
       } else {
+        let perMeal = {
+          breakfast: { total: 0, foods: [] },
+          lunch: { total: 0, foods: [] },
+          snack: { total: 0, foods: [] },
+          dinner: { total: 0, foods: [] }
+        };
+
+        perMeal[meal].total += calories;
+        perMeal[meal].foods.push(...foods);
+
         let newItem = new models.Logger({
           username: username,
-          foodIds: [foodId],
+          foodItems: newFood,
           totalCal: calories,
-          calPerMeal: {
-            breakfast: meal === "breakfast" ? calories : 0,
-            lunch: meal === "lunch" ? calories : 0,
-            snack: meal === "snack" ? calories : 0,
-            dinner: meal === "dinner" ? calories : 0
-        }
+          calPerMeal: perMeal
         });
 
-        await newItem.save();
+        let added = await newItem.save();
+        result = added
       }
 
-      res.json({status: 'success'});
+      res.json(result);
     }catch(err){
       console.error(err);
     }
@@ -116,7 +107,44 @@ router.post('/', async (req, res, next) => {
   }
 })
 
-// get the food information (for searching) from fatSecret
+//remove a food from the db
+router.post('/delete', async (req, res, next) => {
+  let {username, foodName} = req.body
+
+  if(username && foodName) {
+    try {
+      let data = await models.Logger.findOne({ username });
+
+      if(data){
+        let foods = data.foodItems;
+        let updatedList = foods.filter(item => {
+          return !(foodName in item)
+        });
+
+        let update = {
+          foodItems: updatedList
+        }
+
+        let updateItem = await models.Logger.findOneAndUpdate({username: username}, update, { new: true })
+        res.json(updateItem)
+      }else{
+        res.status(401).json({ message: "There is no food added" });
+      }
+    } catch(err){
+      console.error(err);
+    }
+  } else {
+    if(!username) {
+      res.status(401).json({ message: "Missing required username" });
+    }
+
+    if(!foodId) {
+      res.status(401).json({ message: "Please choose a food item to be deleted" });
+    }
+  }
+})
+
+// get the food name + basic info (for searching) from fatSecret
 router.get('/search/:foodName', function (req, res, next) {
   let foodName = req.params.foodName
 
@@ -135,6 +163,65 @@ router.get('/search/:foodName', function (req, res, next) {
     res.json({ info: response })
   });
 });
+
+// return detailed info when clicked on a food name
+router.get('/foodInfo/:id', (req, res, next) => {
+  let info = getFoodInfo(req.params.id);
+  res.json(info);
+})
+
+// get food info from fatSecret
+function getFoodInfo(id) {
+  let items = []
+
+  let options = {
+    method : 'POST',
+    url: BASEURL + `?method=food.get.v3&food_id=${id}&format=json`,
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    }
+  }
+
+  let promise = new Promise((resolve, reject) => {
+    request(options, function (error, response, body) {
+      if (error) {
+        reject(error);
+      } else {
+        body = JSON.parse(body);
+        let foodInfo = {
+          "foodId": body.food["food_id"],
+          "name": body.food["food_name"],
+          "type": body.food["food_type"],
+          "attributes": body.food["food_attributes"],
+          "servings": body.food["servings"]
+        };
+        resolve({
+          "username": username,
+          "totalCal": data.totalCal,
+          "calPerMeal": data.calPerMeal,
+          "foodInfo": foodInfo
+        });
+      }
+    });
+    items.push(promise);
+  });
+
+  Promise.all(items)
+    .then(result => {
+      let responseData = {};
+      result.forEach((item, index) => {
+        responseData[food[index]] = item;
+      });
+      res.json(responseData);
+    })
+    .catch(error => {
+      console.error(error);
+      res.status(500).json({ message: "Internal server error" });
+    });
+
+  return items;
+}
 
 // get access token
 function getAccessToken() {

@@ -39,9 +39,9 @@ async function main() {
   const LoggerSchema = new mongoose.Schema({
     username: String,
     date: { type: Date, default: Date.now },
-    foodIds: [String], // array of foodIds
+    foodItems: [Object], // array of foodIds
     totalCal: Number,
-    calPerMeal: { type: Object, default: { "breakfast": 0, "lunch": 0, "snack": 0, "dinner": 0 } }
+    calPerMeal: { type: Object }
   })
 
   models.Post = mongoose.model('Post', PostSchema);
