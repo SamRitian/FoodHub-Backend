@@ -35,13 +35,21 @@ router.get('/', async (req, res, next) => {
 
           request(options, function (error, response, body) {
             if (error) throw new Error(error);
-            console.log(body)
+            body = JSON.parse(body);
+            console.log(body);
+
+            console.log(data.totalCal);
+            console.log(data.calPerMeal)
+
             res.json({
-              "foodId": body.food["food_id"],
-              "name": body.food["food_name"],
-              "type": body.food["food_type"],
-              "attributes": body.food["food_attributes"],
-              "servings": body.food["servings"]
+              "totalCal": data.totalCal,
+              "calPerMeal": data.calPerMeal,
+              "foodInfo": {"foodId": body.food["food_id"],
+                            "name": body.food["food_name"],
+                            "type": body.food["food_type"],
+                            "attributes": body.food["food_attributes"],
+                            "servings": body.food["servings"]
+                          }
             })
           });
         }
@@ -87,7 +95,7 @@ router.post('/', async (req, res, next) => {
             lunch: meal === "lunch" ? calories : 0,
             snack: meal === "snack" ? calories : 0,
             dinner: meal === "dinner" ? calories : 0
-          }
+        }
         });
 
         await newItem.save();
