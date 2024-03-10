@@ -14,7 +14,7 @@ getAccessToken()
 
 // get the food info from the db
 router.get('/', async (req, res, next) => {
-  let username = req.body.username
+  let username = req.query.username
 
   if(username){
     try {
