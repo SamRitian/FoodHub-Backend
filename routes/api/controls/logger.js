@@ -52,7 +52,7 @@ router.post('/', async (req, res, next) => {
 
         let chosenMeal = data.calPerMeal[meal].foods;
         console.log(data.calPerMeal)
-        chosenMeal.push(...foodId);
+        chosenMeal.push(foodId);
 
         let update = {
           foodItems: foods,
@@ -60,7 +60,7 @@ router.post('/', async (req, res, next) => {
           calPerMeal: {
             ...data.calPerMeal,
             [meal]: {
-              total: data.calPerMeal[meal] + calories,
+              total: data.calPerMeal[meal].total + calories,
               foods: chosenMeal
             }
           }
@@ -79,7 +79,7 @@ router.post('/', async (req, res, next) => {
         };
 
         perMeal[meal].total += calories;
-        perMeal[meal].foods.push(...foods);
+        perMeal[meal].foods = [foodId];
 
         let newItem = new models.Logger({
           username: username,
@@ -160,7 +160,7 @@ router.get('/search/:foodName', function (req, res, next) {
   request(options, function (error, response, body) {
     if (error) throw new Error(error);
     console.log(body)
-    res.json({ info: response })
+    res.json({ info: body.foods.food })
   });
 });
 
