@@ -122,7 +122,8 @@ router.post('/delete', async (req, res, next) => {
         });
 
         let update = {
-          foodItems: updatedList
+          foodItems: updatedList,
+          totalCal: data.totalCal - data.foodItems[foodName].serving[1]
         }
 
         let updateItem = await models.Logger.findOneAndUpdate({username: username}, update, { new: true })
@@ -245,6 +246,8 @@ function getAccessToken() {
     if (error) throw new Error(error);
     token = body['access_token'];
     expires = (body['expires_in'] * 1000) - 10000;
+
+    setTimeout(getAccessToken, 24 * 60 * 60 * 1000);
  });
 }
 
