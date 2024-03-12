@@ -16,10 +16,10 @@ getAccessToken()
 router.get('/', async (req, res, next) => {
   let username = req.query.username
 
-  if(username){
+  if (username) {
     let data = await models.Logger.findOne({ username });
 
-    if(data){
+    if (data) {
       res.json(data);
     } else {
       res.json({ message: "No food item yet" });
@@ -46,13 +46,15 @@ router.post('/', async (req, res, next) => {
 
         let updatingMeal = data.meals[mealIndex];
 
-        if(updatingMeal) {
+        if (updatingMeal) {
           updatingMeal.foods.push(food);
           updatingMeal.totalCal += food.calories;
         } else {
-          data.meals.push({name: meal,
+          data.meals.push({
+            name: meal,
             foods: [food],
-            totalCal: food.calories});
+            totalCal: food.calories
+          });
         }
 
         // Update total calories for the day
@@ -92,16 +94,16 @@ router.post('/', async (req, res, next) => {
 router.post('/delete', async (req, res, next) => {
   let { username, meal, foodId } = req.body;
 
-  if(username && meal && foodId) {
+  if (username && meal && foodId) {
     try {
       let data = await models.Logger.findOne({ username });
 
-      if(data){
+      if (data) {
         let mealIndex = data.meals.findIndex(m => m.name === meal);
         let mealToUpdate = data.meals[mealIndex];
         let foodIndex = mealToUpdate.foods.findIndex(f => f.foodId === foodId);
 
-        if(foodIndex !== -1) {
+        if (foodIndex !== -1) {
           const removedFood = mealToUpdate.foods.splice(foodIndex, 1)[0];
 
           // Update total calories for the meal and the day
@@ -111,16 +113,16 @@ router.post('/delete', async (req, res, next) => {
           await data.save();
           res.json(data);
         } else {
-          res.json({message: "Food item doesn't exist"});
+          res.json({ message: "Food item doesn't exist" });
         }
-      }else {
+      } else {
         res.json({ message: "No food to be deleted" });
       }
-    }catch(err){
+    } catch (err) {
       console.error(err);
       res.status(500).json({ message: "Internal server error" });
     }
-  } else{
+  } else {
     res.status(400).json({ message: "Missing required fields" });
   }
 })
@@ -130,7 +132,7 @@ router.get('/search/:foodName', function (req, res, next) {
   let foodName = req.params.foodName
 
   let options = {
-    method : 'POST',
+    method: 'POST',
     url: BASEURL + `?method=foods.search&search_expression=${foodName}&format=json`,
     headers: {
       'Content-Type': 'application/json',
@@ -146,6 +148,37 @@ router.get('/search/:foodName', function (req, res, next) {
   });
 });
 
+// get the food info from foodId
+router.post('/foodInfo', (req, res, next) => {
+  let { foodId } = req.body;
+  console.log(foodId)
+  let options = {
+    method: 'POST',
+    url: BASEURL + `?method=food.get.v3&food_id=${foodId}&format=json`,
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    }
+  }
+
+  request(options, function (error, response, body) {
+    if (error) throw new Error(error);
+    let foodInfo = JSON.parse(body).food
+
+    const food = {
+      foodId: foodInfo.food_id,
+      name: foodInfo.food_name,
+      calories: foodInfo.servings.serving[0].calories,
+      serving: foodInfo.servings.serving[0].serving_description,
+      protein: foodInfo.servings.serving[0].protein,
+      carbs: foodInfo.servings.serving[0].carbohydrate,
+      fat: foodInfo.servings.serving[0].fat
+    }
+
+    res.json(food)
+  })
+})
+
 // return detailed info when clicked on a food name
 router.get('/foodInfo/:id', (req, res, next) => {
   let info = getFoodInfo(req.params.id);
@@ -157,7 +190,7 @@ function getFoodInfo(id) {
   let items = []
 
   let options = {
-    method : 'POST',
+    method: 'POST',
     url: BASEURL + `?method=food.get.v3&food_id=${id}&format=json`,
     headers: {
       'Content-Type': 'application/json',
@@ -208,28 +241,28 @@ function getFoodInfo(id) {
 // get access token
 function getAccessToken() {
   let options = {
-    method : 'POST',
+    method: 'POST',
     url: 'https://oauth.fatsecret.com/connect/token',
-    method : 'POST',
-    auth : {
-       user : CLIENTID,
-       password : SECRET
+    method: 'POST',
+    auth: {
+      user: CLIENTID,
+      password: SECRET
     },
-    headers: { 'content-type': 'application/x-www-form-urlencoded'},
+    headers: { 'content-type': 'application/x-www-form-urlencoded' },
     form: {
-       'grant_type': 'client_credentials',
-       'scope' : 'basic'
+      'grant_type': 'client_credentials',
+      'scope': 'basic'
     },
     json: true
- };
+  };
 
- request(options, function (error, response, body) {
+  request(options, function (error, response, body) {
     if (error) throw new Error(error);
     token = body['access_token'];
     expires = (body['expires_in'] * 1000) - 10000;
 
     setTimeout(getAccessToken, 24 * 60 * 60 * 1000);
- });
+  });
 }
 
 module.exports = router;
