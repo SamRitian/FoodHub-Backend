@@ -31,117 +31,89 @@ router.get('/', async (req, res, next) => {
 
 // add food to the db
 router.post('/', async (req, res, next) => {
-  let {username, foodId, meal, calories, servingSize, nutrition} = req.body
+  //meal = meal name
+  //foodItem = object of that food
+  let { username, meal, foodItem } = req.body;
 
-  if(username && foodId && meal && calories && servingSize && nutrition) {
+  if (username && meal && foodItem) {
     try {
       let data = await models.Logger.findOne({ username });
-      let result = {}
 
-      let newFood = {}
-        newFood[foodId] = {
-          "serving": [servingSize, calories],
-          "protein": nutrition[0],
-          "carbs": nutrition[1],
-          "fat": nutrition[2]
-        };
+      if (data) {
+        // update the existing row in Logger
+        let mealIndex = data.meals.findIndex(m => m.name === meal);
 
-      if(data) {
-        let foods = data.foodItems;
-        foods.push(newFood);
+        let updatingMeal = data.meals[mealIndex];
+        updatingMeal.foods.push(foodItem);
+        updatingMeal.totalCal += foodItem.calories;
 
-        let chosenMeal = data.calPerMeal[meal].foods;
-        console.log(data.calPerMeal)
-        chosenMeal.push(foodId);
+        // Update total calories for the day
+        data.totalCal += foodItem.calories;
 
-        let update = {
-          foodItems: foods,
-          totalCal: data.totalCal + calories,
-          calPerMeal: {
-            ...data.calPerMeal,
-            [meal]: {
-              total: data.calPerMeal[meal].total + calories,
-              foods: chosenMeal
-            }
-          }
-        };
+        // Save the updated data document
+        await data.save();
 
-        let updateItem = await models.Logger.findOneAndUpdate({username: username}, update, { new: true })
-
-        result = updateItem
-
+        res.json(data);
       } else {
-        let perMeal = {
-          breakfast: { total: 0, foods: [] },
-          lunch: { total: 0, foods: [] },
-          snack: { total: 0, foods: [] },
-          dinner: { total: 0, foods: [] }
-        };
-
-        perMeal[meal].total += calories;
-        perMeal[meal].foods = [foodId];
-
-        let newItem = new models.Logger({
+        // If this is the first time the user add a food
+        let newData = new models.Logger({
           username: username,
-          foodItems: newFood,
-          totalCal: calories,
-          calPerMeal: perMeal
+          meals: [{
+            name: meal,
+            foods: [foodItem],
+            totalCal: foodItem.calories
+          }],
+          totalCal: foodItem.calories
         });
 
-        let added = await newItem.save();
-        result = added
-      }
+        // Save the new logger document
+        await newData.save();
 
-      res.json(result);
-    }catch(err){
+        res.json(newData);
+      }
+    } catch (err) {
       console.error(err);
+      res.status(500).json({ message: "Internal server error" });
     }
   } else {
-    if(!username) {
-      res.status(401).json({ message: "Missing required username" });
-    }
-
-    if(!foodId) {
-      res.status(401).json({ message: "Please choose a food item to be added" });
-    }
+    res.status(400).json({ message: "Missing required fields" });
   }
 })
 
 //remove a food from the db
 router.post('/delete', async (req, res, next) => {
-  let {username, foodName} = req.body
+  let { username, meal, foodItem } = req.body;
 
-  if(username && foodName) {
+  if(username && meal && foodItem) {
     try {
       let data = await models.Logger.findOne({ username });
 
       if(data){
-        let foods = data.foodItems;
-        let updatedList = foods.filter(item => {
-          return !(foodName in item)
-        });
+        let mealIndex = data.meals.findIndex(m => m.name === meal);
+        let mealToUpdate = data.meals[mealIndex];
+        let foodIndex = mealToUpdate.foods.findIndex(f => f.name === foodItem.name);
 
-        let update = {
-          foodItems: updatedList,
-          totalCal: data.totalCal - data.foodItems[foodName].serving[1]
+        if(foodIndex !== -1) {
+          const removedFood = mealToUpdate.foods.splice(foodIndex, 1)[0];
+
+          // Update total calories for the meal and the day
+          mealToUpdate.totalCal -= removedFood.calories;
+          data.totalCal -= removedFood.calories;
+
+          await data.save();
+          res.json(data);
+        } else {
+          res.json({message: "Food item doesn't exist"})
         }
-
-        let updateItem = await models.Logger.findOneAndUpdate({username: username}, update, { new: true })
-        res.json(updateItem)
-      }else{
-        res.status(401).json({ message: "There is no food added" });
+      }else {
+        res.status(400).json({ message: "No food to be deleted" });
       }
-    } catch(err){
+    }catch(err){
       console.error(err);
+      res.status(500).json({ message: "Internal server error" });
     }
-  } else {
-    if(!username) {
-      res.status(401).json({ message: "Missing required username" });
-    }
-
-    if(!foodId) {
-      res.status(401).json({ message: "Please choose a food item to be deleted" });
-    }
+  } else{
+    res.status(400).json({ message: "Missing required fields" });
   }
 })
 
@@ -160,8 +132,9 @@ router.get('/search/:foodName', function (req, res, next) {
 
   request(options, function (error, response, body) {
     if (error) throw new Error(error);
-    console.log(body)
-    res.json({ info: body.foods.food })
+    let foodInfo = JSON.parse(body)
+    console.log(foodInfo.foods.food)
+    res.json({ info: foodInfo.foods.food })
   });
 });
 

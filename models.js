@@ -36,13 +36,36 @@ async function main() {
     activityLevel: String // could be from: [Sedentary, Lightly Active, Moderately Active, Very Active]
   });
 
+  // sub-schema for food items
+  const FoodItemSchema = new mongoose.Schema({
+    name: String,
+    calories: Number,
+    serving: String,
+    protein: Number,
+    carbs: Number,
+    fat: Number
+  });
+
+  // Define sub-schema for meal
+  const MealSchema = new mongoose.Schema({
+    name: String,
+    foods: [FoodItemSchema],
+    totalCal: Number
+  });
+
+  // Define main Logger schema
   const LoggerSchema = new mongoose.Schema({
     username: String,
     date: { type: Date, default: Date.now },
-    foodItems: [Object], // array of foodIds
-    totalCal: Number,
-    calPerMeal: { type: Object }
-  })
+    meals: [MealSchema],
+    calPerMeal: {
+        breakfast: Number,
+        lunch: Number,
+        dinner: Number,
+        snacks: Number
+    },
+    totalCal: Number
+  });
 
   models.Post = mongoose.model('Post', PostSchema);
   models.Comment = mongoose.model('Comment', CommentSchema);
