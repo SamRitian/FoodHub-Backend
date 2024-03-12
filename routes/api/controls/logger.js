@@ -44,8 +44,15 @@ router.post('/', async (req, res, next) => {
         let mealIndex = data.meals.findIndex(m => m.name === meal);
 
         let updatingMeal = data.meals[mealIndex];
-        updatingMeal.foods.push(foodItem);
-        updatingMeal.totalCal += foodItem.calories;
+
+        if(updatingMeal) {
+          updatingMeal.foods.push(foodItem);
+          updatingMeal.totalCal += foodItem.calories;
+        } else {
+          data.meals.push({name: meal,
+            foods: [foodItem],
+            totalCal: foodItem.calories});
+        }
 
         // Update total calories for the day
         data.totalCal += foodItem.calories;
@@ -82,16 +89,16 @@ router.post('/', async (req, res, next) => {
 
 //remove a food from the db
 router.post('/delete', async (req, res, next) => {
-  let { username, meal, foodItem } = req.body;
+  let { username, meal, foodId } = req.body;
 
-  if(username && meal && foodItem) {
+  if(username && meal && foodId) {
     try {
       let data = await models.Logger.findOne({ username });
 
       if(data){
         let mealIndex = data.meals.findIndex(m => m.name === meal);
         let mealToUpdate = data.meals[mealIndex];
-        let foodIndex = mealToUpdate.foods.findIndex(f => f.name === foodItem.name);
+        let foodIndex = mealToUpdate.foods.findIndex(f => f.foodId === foodId);
 
         if(foodIndex !== -1) {
           const removedFood = mealToUpdate.foods.splice(foodIndex, 1)[0];

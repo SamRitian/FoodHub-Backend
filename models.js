@@ -39,6 +39,7 @@ async function main() {
   // sub-schema for food items
   const FoodItemSchema = new mongoose.Schema({
     name: String,
+    foodId: String,
     calories: Number,
     serving: String,
     protein: Number,
