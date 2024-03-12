@@ -36,6 +36,7 @@ router.post('/', async (req, res, next) => {
   let { username, meal, foodItem } = req.body;
 
   if (username && meal && foodItem) {
+    let food = JSON.parse(foodItem)
     try {
       let data = await models.Logger.findOne({ username });
 
@@ -46,16 +47,16 @@ router.post('/', async (req, res, next) => {
         let updatingMeal = data.meals[mealIndex];
 
         if(updatingMeal) {
-          updatingMeal.foods.push(foodItem);
-          updatingMeal.totalCal += foodItem.calories;
+          updatingMeal.foods.push(food);
+          updatingMeal.totalCal += food.calories;
         } else {
           data.meals.push({name: meal,
-            foods: [foodItem],
-            totalCal: foodItem.calories});
+            foods: [food],
+            totalCal: food.calories});
         }
 
         // Update total calories for the day
-        data.totalCal += foodItem.calories;
+        data.totalCal += food.calories;
 
         // Save the updated data document
         await data.save();
@@ -67,10 +68,10 @@ router.post('/', async (req, res, next) => {
           username: username,
           meals: [{
             name: meal,
-            foods: [foodItem],
-            totalCal: foodItem.calories
+            foods: [food],
+            totalCal: food.calories
           }],
-          totalCal: foodItem.calories
+          totalCal: food.calories
         });
 
         // Save the new logger document
