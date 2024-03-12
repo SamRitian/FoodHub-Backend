@@ -22,7 +22,7 @@ router.get('/', async (req, res, next) => {
     if(data){
       res.json(data);
     } else {
-      res.status(401).json({ message: "No food item yet" });
+      res.json({ message: "No food item yet" });
     }
   } else {
     res.status(401).json({ message: "Missing required username" });
@@ -110,10 +110,10 @@ router.post('/delete', async (req, res, next) => {
           await data.save();
           res.json(data);
         } else {
-          res.json({message: "Food item doesn't exist"})
+          res.json({message: "Food item doesn't exist"});
         }
       }else {
-        res.status(400).json({ message: "No food to be deleted" });
+        res.json({ message: "No food to be deleted" });
       }
     }catch(err){
       console.error(err);
